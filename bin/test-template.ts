@@ -18,4 +18,8 @@ new TestTemplateStack(app, 'lol-step-functions-stack', {
   // env: { account: '123456789012', region: 'us-east-1' },
 
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+  env: {
+      account: '', // Replace with your AWS account ID
+      region: 'us-east-1',     // Replace with your AWS region
+  },
 });

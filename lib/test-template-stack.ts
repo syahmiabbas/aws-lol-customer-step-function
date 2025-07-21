@@ -13,8 +13,6 @@ export class TestTemplateStack extends cdk.Stack {
     super(scope, id, props);
 
     const accountId = this.account;
-    // let eventName = this.node.tryGetContext('eventName') ?? `event`;
-    // const bucketName = eventName + "-lol-output-json-bucket"
 
     const eventNameParam = new cdk.CfnParameter(this, 'eventName', {
       type: 'String',
@@ -469,11 +467,40 @@ export class TestTemplateStack extends cdk.Stack {
       managedPolicyArns: [
         iamManagedPolicy00policyserviceroleAwsLambdaBasicExecutionRoled0e0792fb9f045c38965f949f4baa98000Xc2iL.ref,
         'arn:aws:iam::aws:policy/AmazonSageMakerFullAccess',
-        'arn:aws:iam::aws:policy/AdministratorAccess',
-        
+        'arn:aws:iam::aws:policy/AmazonS3FullAccess',
       ],
       maxSessionDuration: 3600,
       roleName: 'generate-endpoint-lol-role-gkshk7dh',
+      policies: [
+        {
+          policyDocument: {
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Resource: '*',
+                Action: 'iam:PassRole',
+                Effect: 'Allow',
+              },
+              {
+                Resource: '*',
+                Action: 'sagemaker:CreateModel',
+                Effect: 'Allow',
+              },
+              {
+                Resource: '*',
+                Action: 'sagemaker:CreateEndpoint',
+                Effect: 'Allow',
+              },
+              {
+                Resource: '*',
+                Action: 'sagemaker:CreateEndpointConfig',
+                Effect: 'Allow',
+              }
+            ],
+          },
+          policyName: 'SagemakerPolicy',
+        },
+      ],
       assumeRolePolicyDocument: {
         Version: '2012-10-17',
         Statement: [
@@ -500,7 +527,8 @@ export class TestTemplateStack extends cdk.Stack {
       path: '/service-role/',
       managedPolicies: [
           iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
-          iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')
+          iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSageMakerFullAccess'),
+          iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess')
       ],
       maxSessionDuration: cdk.Duration.hours(1),
       roleName: 'generate-output-lol-role-qv3i7d6d'
@@ -510,7 +538,9 @@ export class TestTemplateStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       path: '/service-role/',
       managedPolicies: [
-          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+          iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonBedrockFullAccess'),
+          iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess')
       ],
       maxSessionDuration: cdk.Duration.hours(1),
       roleName: 'generate-flow-output-lol-role'
@@ -577,13 +607,16 @@ export class TestTemplateStack extends cdk.Stack {
       role: iamRole00generateoutputlolrole15901mev00zktT8
     });
 
+    // Lambda Function: generate-flow-output-lol
+    const flowOutputZipPath = path.join(__dirname, '../generate-flow-output-lol.zip');
+
     // const generate_flow_output_lol_code = fs.readFileSync('generate-endpoint-lol.py', 'utf8');
     const generateFlowOutputFunction = new lambda.Function(this, 'generate_flow_output_lol', {
       runtime: lambda.Runtime.PYTHON_3_12,
       handler: 'index.handler',
       memorySize: 256,
       timeout: cdk.Duration.seconds(900),
-      code: lambda.Code.fromInline("./generate-endpoint-lol.py"),
+      code: lambda.Code.fromAsset(flowOutputZipPath),
       layers: [
         lambda.LayerVersion.fromLayerVersionArn(this, 'MyImportedLayer', sagemaker_lol_layer.layerVersionArn)
       ],
